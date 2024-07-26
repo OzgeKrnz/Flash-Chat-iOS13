@@ -6,14 +6,28 @@
 //  Copyright © 2019 Angela Yu. All rights reserved.
 //
 
+import Firebase
 import UIKit
 
 class RegisterViewController: UIViewController {
-
-    @IBOutlet weak var emailTextfield: UITextField!
-    @IBOutlet weak var passwordTextfield: UITextField!
+    @IBOutlet var emailTextfield: UITextField!
+    @IBOutlet var passwordTextfield: UITextField!
     
     @IBAction func registerPressed(_ sender: UIButton) {
+        if let email = emailTextfield.text, let password = passwordTextfield.text {
+            Auth.auth().createUser(withEmail: email, password: password){authResult, error in
+                if let e = error{
+                    print(e.localizedDescription)
+     
+                }
+                else{
+                    // go to the chatviewcontroller
+                    self.performSegue(withIdentifier: "RegisterToChat", sender: self)
+                }
+            }
+        }
+        
+        emailTextfield.text = ""
+        passwordTextfield.text = ""
     }
-    
 }
