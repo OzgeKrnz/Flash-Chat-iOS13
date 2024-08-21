@@ -12,12 +12,16 @@ import Firebase
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
-
+    
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         
         //firebase code
         FirebaseApp.configure()
+        
+        //create database
+        let db = Firestore.firestore()
+        print(db)
         return true
     }
 
