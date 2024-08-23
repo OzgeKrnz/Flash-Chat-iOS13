@@ -24,8 +24,7 @@ class ChatViewController: UIViewController {
         tableView.dataSource = self
         title = Constants.appName
         // back nav gizleme
-        navigationItem.hidesBackButton = true
-        
+        navigationItem.hidesBackButton = true        
         // nıb file
         tableView.register(UINib(nibName: Constants.cellNibName, bundle: nil), forCellReuseIdentifier: Constants.cellIdentifier)
         
@@ -34,9 +33,12 @@ class ChatViewController: UIViewController {
     
     // veri cekme
     func loadMessages(){
-        messages = []
         
-        db.collection(Constants.FStore.collectionName).getDocuments { (querySnapshot, error) in
+        db.collection(Constants.FStore.collectionName)
+            .order(by: Constants.FStore.dateField)
+            .addSnapshotListener { (querySnapshot, error) in
+            self.messages = []
+
             if let e = error{
                 print(e)
             }else{
@@ -50,7 +52,9 @@ class ChatViewController: UIViewController {
                             //tableview ekleme
                             DispatchQueue.main.async{
                                 self.tableView.reloadData()
+
                             }
+                            
                         }
                      
                     }
@@ -75,10 +79,12 @@ class ChatViewController: UIViewController {
     @IBAction func sendPressed(_ sender: UIButton) {
         // save mssg
         if let messageBody = messageTextfield.text, let messageSender = 
-            Auth.auth().currentUser?.email {
+            Auth.auth().currentUser?.email{
             db.collection(Constants.FStore.collectionName).addDocument(data: [
                 Constants.FStore.senderField: messageSender,
-                Constants.FStore.bodyField: messageBody]) { (error) in
+                Constants.FStore.bodyField: messageBody,
+                Constants.FStore.dateField: Date().timeIntervalSince1970
+            ]) { (error) in
                     if let e = error{
                         print(e)
                     } else{
@@ -98,8 +104,7 @@ extension ChatViewController: UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: Constants.cellIdentifier, for: indexPath) as! MessageCell
-        
-        cell.label.text = messages[indexPath.row].body
+                cell.label.text = messages[indexPath.row].body
         return cell
     }
 }
