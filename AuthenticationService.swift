@@ -7,3 +7,34 @@
 //
 
 import Foundation
+import Firebase
+
+protocol AuthenticationServicing{
+    func signOut(completion: @escaping (Error?)-> Void)
+    func getCurrentUSerEmail()->String?
+    func signInWithEmail()
+}
+
+
+class AuthenticationService: AuthenticationServicing{
+   
+    private let auth = Auth.auth()
+    
+    func signOut(completion: @escaping (Error?) ->Void) {
+        do {
+            try auth.signOut()
+            completion(nil) // Başarılı, hata yok.
+        } catch let error {
+            print("Error signing out: %@", error)
+            completion(error) // Başarısız, hatayı bildir.
+        }
+    }
+    
+    func getCurrentUSerEmail() -> String? {
+        return auth.currentUser?.email
+    }
+    
+    func signInWithEmail() {
+        print("email ile giriş")
+    }
+}

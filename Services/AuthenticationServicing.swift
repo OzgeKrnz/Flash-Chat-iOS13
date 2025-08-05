@@ -8,3 +8,7 @@
 
 import Foundation
 
+protocol AuthenticationServicing{
+    func signOut(completion: @escaping (Error?)-> Void)
+    func getCurrentUSerEmail()->String?
+}

@@ -6,18 +6,34 @@
 //  Copyright © 2019 Angela Yu. All rights reserved.
 //
 
-import Firebase
 import UIKit
 
 class ChatViewController: UIViewController {
+    
+    // UI
     @IBOutlet var tableView: UITableView!
     @IBOutlet var messageTextfield: UITextField!
     
-    let db = Firestore.firestore()
     
-    var messages: [Message] = [
-     
-    ]
+   
+    private let authService: AuthenticationServicing
+    private let messageService: MessageServicing
+    
+    init(authService: AuthenticationServicing = AuthenticationService(), messageService: MessageServicing = MessageService()){
+        self.authService = authService
+        self.messageService = messageService
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+  
+//    // srp ihlali db işlemi vc icinde ayrıca dependency inversion ihlali vc alt modüle dogrudan bağlanmış
+//    let db = Firestore.firestore()
+//    
+    var messages: [Message] = []
+//
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -33,66 +49,53 @@ class ChatViewController: UIViewController {
     
     // veri cekme
     func loadMessages(){
-        
-        db.collection(Constants.FStore.collectionName)
-            .order(by: Constants.FStore.dateField)
-            .addSnapshotListener { (querySnapshot, error) in
-            self.messages = []
+        // veritabanından veri cekme srp ihlali
+   
 
-            if let e = error{
-                print(e)
-            }else{
-                if let snapshotDocuments = querySnapshot?.documents{
-                    for doc in snapshotDocuments{
-                        let data = doc.data()
-                        if let messageSender = data[Constants.FStore.senderField] as? String, let messageBody = data[Constants.FStore.bodyField] as? String{
-                            let newMessage = Message(sender: messageSender, body: messageBody)
-                            self.messages.append(newMessage)
-                            
-                            //tableview ekleme
-                            DispatchQueue.main.async{
-                                self.tableView.reloadData()
-
-                            }
-                            
-                        }
-                     
-                    }
+        messageService.listenForMessage{ [weak self] result in
+            guard let self = self else {return}
+            
+            switch result{
+            case .success(let messages):
+                self.messages = messages
+                DispatchQueue.main.async {
+                    self.tableView.reloadData()
                 }
+            case .failure(let error):
+                print("Mesajlar yüklenemedi: \(error.localizedDescription)")
             }
         }
     }
 
     @IBAction func logOutButton(_ sender: Any) {
-        let firebaseAuth = Auth.auth()
-        do {
-            try firebaseAuth.signOut()
-            // pop to route viewcontroller
-            navigationController?.popToRootViewController(animated: true)
-            print("Cıkıs yapıldı")
-        }
-        catch let signOutError as NSError {
-            print("Error signing out: %@", signOutError)
+        // srp ihlali: vc icinde firebase işlemi var ayrıca dependency inversion ihlali.
+        authService.signOut{[weak self] (error) in
+            if error == nil{
+                print("çıkış yapıldı")
+                self?.navigationController?.popToRootViewController(animated: true)
+            }else{
+                print("Cıkıs yapılırken hata oluştu: \(error!.localizedDescription)")
+            }
         }
     }
 
     @IBAction func sendPressed(_ sender: UIButton) {
         // save mssg
-        if let messageBody = messageTextfield.text, let messageSender = 
-            Auth.auth().currentUser?.email{
-            db.collection(Constants.FStore.collectionName).addDocument(data: [
-                Constants.FStore.senderField: messageSender,
-                Constants.FStore.bodyField: messageBody,
-                Constants.FStore.dateField: Date().timeIntervalSince1970
-            ]) { (error) in
-                    if let e = error{
-                        print(e)
-                    } else{
-                        print("Data saved successfully.")
-                    }
+        
+        guard let messageBody = messageTextfield.text, !messageBody.isEmpty,
+              let messageSender = authService.getCurrentUSerEmail() else {
+            return
+        }
+        
+        messageService.sendMessage(body: messageBody, sender: messageSender){
+            [weak self] error in
+            if let error = error {
+                print("Mesaj gönderilemedi: \(error.localizedDescription)")
+            }else{
+                DispatchQueue.main.async {
+                    self?.messageTextfield.text = ""
                 }
-                
-                                                                             
+            }
         }
     }
 }
@@ -108,3 +111,7 @@ extension ChatViewController: UITableViewDataSource {
         return cell
     }
 }
+
+
+
+
